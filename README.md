@@ -25,8 +25,10 @@ This project automates the analysis of YouTube videos by downloading videos from
 
 ## Installation and Setup
 
-### 1. Clone the Project Repository
-https://github.com/jyothireddy-dev/YouTube-pipeline.git
+### 1.No Code Architects toolkit
+https://github.com/stephengpope/no-code-architects-toolkit
+N8n
+https://github.com/n8n-io/n8n
 
 ### 2. Setup MinIO (Local S3 Storage)
 Run MinIO using Docker:
