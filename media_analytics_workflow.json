@@ -1,0 +1,254 @@
+{
+  "name": "YouTube Summary Pipeline with NCA + MinIO",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8080/v1/media/transcribe",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"media_url\":\"https://storage.googleapis.com/sgplabs-general-storage/Vertical%20Video.mp4\",\n    \"task\": \"transcribe\",\n    \"include_text\": true,\n    \"include_srt\": true,\n    \"include_segments\": true,\n    \"response_type\": \"cloud\",\n    \"word_timestamps\": true,\n    \"language\": \"en\",\n    \"id\": \"2323\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4464,
+        0
+      ],
+      "id": "79967890-7002-4fa6-a3ba-6f031da5787a",
+      "name": "Transcribe Media",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "koZdSpyaSh1wyG3T",
+          "name": "nca-toolkit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/v1/ffmpeg/compose",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"inputs\": [\n    {\n      \"file_url\": \"https://storage.googleapis.com/sgplabs-general-storage/Horizontal Video.mp4\"\n    }\n  ],\n  \"filters\": [\n    {\n      \"filter\": \"[0:v]trim=start=10:end=15,setpts=PTS-STARTPTS[vout];[0:a]atrim=start=10:end=15,asetpts=PTS-STARTPTS[aout]\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"options\": [\n        { \"option\": \"-map\", \"argument\": \"[vout]\" },\n        { \"option\": \"-map\", \"argument\": \"[aout]\" },\n        { \"option\": \"-c:v\", \"argument\": \"libx264\" },\n        { \"option\": \"-c:a\", \"argument\": \"aac\" }\n      ]\n    }\n  ],\n  \"metadata\": {\n    \"thumbnail\": true,\n    \"filesize\": true,\n    \"duration\": true,\n    \"bitrate\": true,\n    \"encoder\": true\n  },\n  \"id\": \"extract_clip_001\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4032,
+        0
+      ],
+      "id": "6193b13e-e814-47af-b16a-c9ca3a2e9a80",
+      "name": "Compose Clip",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "koZdSpyaSh1wyG3T",
+          "name": "nca-toolkit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5296,
+        0
+      ],
+      "id": "9d1caed5-a69e-4db6-bcf5-d23f4d6c1756",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "youtube",
+        "fileName": "={{ $json[\"youtubeUrl\"].split('v=')[1] }}/transcript.txt\n{{ $json[\"youtubeUrl\"].split('v=')[1] }}-clip1.mp4\n",
+        "binaryData": false,
+        "fileContent": "={{ $json[\"transcript\"] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -3648,
+        0
+      ],
+      "id": "2cd79178-2cbe-4a86-9110-921c16554fba",
+      "name": "Upload a file1",
+      "credentials": {
+        "s3": {
+          "id": "m4pLKTwHx1Ne3v2P",
+          "name": "out put bucket"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "nca-toolkit",
+        "fileName": "{{$json.id}}_summary.txt",
+        "binaryData": false,
+        "fileContent": "{{ $json[\"summary_text\"] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -4896,
+        0
+      ],
+      "id": "7a11d7ac-1c55-4de1-9eb3-53c745145415",
+      "name": "Upload a file",
+      "credentials": {
+        "s3": {
+          "id": "K0MA1Bmy2UU45Mjp",
+          "name": "input storage"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2560,
+        9936
+      ],
+      "id": "931d1b9e-6101-4341-ade2-7a241ed398e4",
+      "name": "when chat message received"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/v1/BETA/media/download",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"media_url\": \"https://www.youtube.com/watch?v=x0QoYIHGn68\",\n\"id\": \"123\",\n\"format\": {\n  \"quality\": \"bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv**ba/b\"\n},\n  \"audio\": {\n    \"extract\": true,\n    \"format\": \"mp4\",\n    \"quality\": \"192\"\n  },\n  \"thumbnails\": {\n    \"download\": false,\n    \"download_all\": false,\n    \"formats\": [\"ipg\", \"webp\"],\n    \"convert\": true,\n    \"embed_in_audio\": false\n  },\n  \"download\": {\n    \"max_filesize\": 50000000,\n    \"rate_limit\": \"5000000k\",\n    \"retries\": 3\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5632,
+        0
+      ],
+      "id": "f0c4ff67-9f4e-4de6-95dd-151d9c69e893",
+      "name": "Download YT",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "koZdSpyaSh1wyG3T",
+          "name": "nca-toolkit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -5936,
+        0
+      ],
+      "id": "5c30223d-c985-42e0-99be-01fce2870fd5",
+      "name": "When chat message received",
+      "webhookId": "dacbbfd8-1070-417e-ba2a-bd754533d62d"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Transcribe Media": {
+      "main": [
+        [
+          {
+            "node": "Compose Clip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Clip": {
+      "main": [
+        [
+          {
+            "node": "Upload a file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "when chat message received": {
+      "main": [
+        []
+      ]
+    },
+    "Download YT": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Download YT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6aa60605-3222-4f61-a7ce-32717598bebd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b43dc8ba1a623c086bbe4a543f632c66b5dcc6adf969b06b72fa893d5960de39"
+  },
+  "id": "u8ajDD3bNwbV0dfS",
+  "tags": []
+}
