@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # my-n8n-project
 Automation workflows with n8n , No-Code-Architects toolkit and MiniO
 # YouTube Media Analytics Pipeline with NCA Toolkit, n8n, Docker, and MinIO
@@ -126,3 +127,7 @@ Check node execution results in n8n UI for each step’s response
 Outputs from clip generation and transcripts will be as per your NCA Toolkit storage setup (e.g., MinIO or local paths)
 
 
+=======
+# youtube-media-analytics
+youtube-video-analytics-automation
+>>>>>>> a2dd343d18141228f7c41c0e929fdfe10c7949e9
